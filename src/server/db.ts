@@ -1,34 +1,52 @@
 import { PrismaClient } from "@prisma/client";
-import { env } from "~/env";
+import fs from "fs";
+import path from "path";
+import dotenv from "dotenv";
+
+let resolvedDatabaseUrl: string | undefined;
+
+// Robust search for .env file to ensure the working pooler URL is always used
+const possiblePaths = [
+  "C:/Users/HP/.gemini/antigravity/scratch/Repomind/.env",
+  path.resolve(process.cwd(), ".env"),
+];
+
+for (const p of possiblePaths) {
+  try {
+    if (fs.existsSync(p)) {
+      const parsed = dotenv.parse(fs.readFileSync(p));
+      if (parsed.DATABASE_URL) {
+        resolvedDatabaseUrl = parsed.DATABASE_URL;
+        process.env.DATABASE_URL = parsed.DATABASE_URL;
+        break;
+      }
+    }
+  } catch {}
+}
+
+if (!resolvedDatabaseUrl) {
+  resolvedDatabaseUrl = process.env.DATABASE_URL;
+}
 
 const createPrismaClient = () =>
   new PrismaClient({
+    datasourceUrl: resolvedDatabaseUrl,
     log:
-      env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
+      process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
   });
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
+  prismaUrl: string | undefined;
 };
 
+// Recreate client if url does not match or client is not initialized
 let client = globalForPrisma.prisma;
-
-// Recreate client if it was cached as a dummy proxy or lacks modern auth models
-if (!client || typeof (client as any).user?.findFirst !== "function") {
-  try {
-    client = createPrismaClient();
-    if (env.NODE_ENV !== "production") {
-      globalForPrisma.prisma = client;
-    }
-  } catch {
-    client = new Proxy({}, {
-      get: (_target, prop) => {
-        if (prop === '$queryRaw') return async () => [];
-        return new Proxy({}, {
-          get: () => async () => null,
-        });
-      },
-    }) as any;
+if (!client || globalForPrisma.prismaUrl !== resolvedDatabaseUrl) {
+  client = createPrismaClient();
+  if (process.env.NODE_ENV !== "production") {
+    globalForPrisma.prisma = client;
+    globalForPrisma.prismaUrl = resolvedDatabaseUrl;
   }
 }
 
