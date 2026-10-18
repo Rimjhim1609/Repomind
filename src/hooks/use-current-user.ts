@@ -1,28 +1,51 @@
 "use client"
 
-import { useUser as useClerkUser } from '@clerk/nextjs'
-
-const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-const hasValidClerkKey = clerkKey && clerkKey.startsWith('pk_') && !clerkKey.includes('...')
+import { authClient } from '~/lib/auth-client'
 
 export function useCurrentUser() {
-  if (!hasValidClerkKey) {
+  const { data: session, isPending } = authClient.useSession()
+
+  if (isPending) {
+    return {
+      isLoaded: false,
+      isSignedIn: false,
+      user: null,
+    }
+  }
+
+  if (session?.user) {
+    const fullName = session.user.name || 'Developer'
+    const nameParts = fullName.split(' ')
+    const firstName = nameParts[0] || 'Developer'
+    const lastName = nameParts.slice(1).join(' ') || ''
+
     return {
       isLoaded: true,
       isSignedIn: true,
       user: {
-        id: 'user_demo_repomind',
-        firstName: 'Demo',
-        lastName: 'User',
-        fullName: 'Demo User',
-        imageUrl: '/favicon.ico',
-        emailAddresses: [{ emailAddress: 'demo@repomind.ai' }],
+        id: session.user.id,
+        firstName,
+        lastName,
+        fullName,
+        imageUrl: session.user.image || '/favicon.ico',
+        emailAddresses: [{ emailAddress: session.user.email }],
       },
     }
   }
 
-  // When valid Clerk key is configured, use Clerk's real hook
-  return useClerkUser()
+  // Safe Demo Fallback
+  return {
+    isLoaded: true,
+    isSignedIn: true,
+    user: {
+      id: 'user_demo_repomind',
+      firstName: 'Demo',
+      lastName: 'User',
+      fullName: 'Demo User',
+      imageUrl: '/favicon.ico',
+      emailAddresses: [{ emailAddress: 'demo@repomind.ai' }],
+    },
+  }
 }
 
 export default useCurrentUser

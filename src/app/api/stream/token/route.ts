@@ -1,15 +1,24 @@
-import { auth } from "@clerk/nextjs/server";
+import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { StreamClient } from '@stream-io/node-sdk';
+import { auth } from "~/lib/auth";
 
 const streamClient = new StreamClient(
-  process.env.NEXT_PUBLIC_STREAM_API_KEY!,
-  process.env.STREAM_SECRET_KEY!
+  process.env.NEXT_PUBLIC_STREAM_API_KEY || "demo_stream_key",
+  process.env.STREAM_SECRET_KEY || "demo_stream_secret"
 );
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    let userId: string | null = null;
+    try {
+      const session = await auth.api.getSession({
+        headers: await headers(),
+      });
+      userId = session?.user?.id ?? null;
+    } catch {
+      // Fallback
+    }
     
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

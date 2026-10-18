@@ -1,6 +1,7 @@
 "use server"
 
-import { auth } from "@clerk/nextjs/server"
+import { headers } from "next/headers"
+import { auth } from "~/lib/auth"
 import { redirect } from "next/navigation"
 import Stripe from "stripe"
 
@@ -15,8 +16,10 @@ export async function createCheckoutSession(credits: number) {
 
   let userId: string | null = null
   try {
-    const session = await auth()
-    userId = session?.userId ?? null
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    })
+    userId = session?.user?.id ?? null
   } catch {
     // Demo fallback when auth is not active
   }

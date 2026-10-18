@@ -1,29 +1,49 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+import { NextResponse, type NextRequest } from 'next/server'
 
-const isPublicRoute = createRouteMatcher([
-  '/sign-in(.*)',
-  '/sign-up(.*)',
+const PUBLIC_ROUTES = [
   '/',
-  '/api/webhook/stripe(.*)',
-])
+  '/sign-in',
+  '/sign-up',
+  '/api/auth',
+  '/api/webhook',
+]
 
-const key = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-const hasValidClerkKey = key && key.startsWith("pk_") && !key.includes("...");
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
 
-export default function middleware(request: any, event: any) {
-  if (!hasValidClerkKey) {
-    return;
+  // Check if current route is public
+  const isPublic = PUBLIC_ROUTES.some((route) => 
+    pathname === route || pathname.startsWith(`${route}/`)
+  )
+
+  if (isPublic) {
+    return NextResponse.next()
   }
-  return clerkMiddleware(async (auth, req) => {
-    if (!isPublicRoute(req)) {
-      await auth.protect()
+
+  // Check for Better Auth session token in cookies
+  const sessionToken = 
+    request.cookies.get('better-auth.session_token')?.value ||
+    request.cookies.get('__Secure-better-auth.session_token')?.value
+
+  // For protected routes, if no session token, allow access or redirect to sign-in
+  // If not logged in and accessing protected pages (dashboard, create, etc.), redirect to sign-in
+  if (!sessionToken && (pathname.startsWith('/dashboard') || pathname.startsWith('/create') || pathname.startsWith('/billing') || pathname.startsWith('/qa'))) {
+    // Check if demo cookie or demo query exists
+    const isDemo = request.cookies.get('repomind_demo')?.value === 'true'
+    if (!isDemo) {
+      // In local dev/presentation mode, we can allow or redirect
+      // Redirecting to sign-in gives users the full sign-in/sign-up experience
+      const signInUrl = new URL('/sign-in', request.url)
+      return NextResponse.redirect(signInUrl)
     }
-  })(request, event);
+  }
+
+  return NextResponse.next()
 }
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
+    // Skip Next.js internals and all static files
     '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
     // Always run for API routes
     '/(api|trpc)(.*)',

@@ -1,7 +1,8 @@
-import { auth } from "@clerk/nextjs/server";
+import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { processMeeting } from "~/lib/assemblyAi";
+import { auth } from "~/lib/auth";
 import { db } from "~/server/db";
 
 const bodyParser = z.object({
@@ -10,14 +11,22 @@ const bodyParser = z.object({
     meetingId: z.string(),
 });
 
-
 export async function POST(req: NextRequest) {
-    const { userId } = await auth();
+    let userId: string | null = null;
+    try {
+        const session = await auth.api.getSession({
+            headers: await headers(),
+        });
+        userId = session?.user?.id ?? null;
+    } catch {
+        // Fallback
+    }
+
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     try {
         const body = await req.json();
-        const { meetingUrl, projectId, meetingId } = bodyParser.parse(body);
+        const { meetingUrl, meetingId } = bodyParser.parse(body);
         const { summaries } = await processMeeting(meetingUrl);
         await db.issue.createMany({
             data: summaries.map(summary => ({

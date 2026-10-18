@@ -1,31 +1,24 @@
-
-import { auth } from "@clerk/nextjs/server";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { auth } from "~/lib/auth";
 import { Features } from "./components/features";
 import { Footer } from "./components/footer";
 import { Hero } from "./components/hero";
 import { HowItWorks } from "./components/how-it-works";
 import { Navbar } from "./components/navbar";
-import { redirect } from "next/navigation";
-
-
-
 
 export default async function Home() {
-  const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  const hasValidClerkKey = clerkKey && clerkKey.startsWith("pk_") && !clerkKey.includes("...");
-
-  if (hasValidClerkKey) {
-    try {
-      const { userId } = await auth();
-      if (userId) {
-        return redirect('/dashboard');
-      }
-    } catch {
-      // Continue to landing page if auth fails
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (session?.user) {
+      return redirect("/dashboard");
     }
+  } catch {
+    // Continue to landing page if not authenticated or database connecting
   }
-  
-  
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -36,7 +29,5 @@ export default async function Home() {
       </main>
       <Footer />
     </div>
-  )
+  );
 }
-
-

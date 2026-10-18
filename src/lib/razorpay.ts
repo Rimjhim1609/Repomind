@@ -1,7 +1,8 @@
 "use server"
 
 import crypto from "crypto"
-import { auth } from "@clerk/nextjs/server"
+import { headers } from "next/headers"
+import { auth } from "~/lib/auth"
 import { db } from "~/server/db"
 
 /**
@@ -86,8 +87,10 @@ export async function verifyRazorpayPayment(
 
   let userId: string | null = null
   try {
-    const session = await auth()
-    userId = session?.userId ?? null
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    })
+    userId = session?.user?.id ?? null
   } catch {
     // Demo mode fallback
   }
