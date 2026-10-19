@@ -9,10 +9,10 @@ import {
   Copy,
   Check,
   Plus,
-  Coins,
   FileCode2,
   MessageSquareCode,
   FolderGit2,
+  Sparkles,
 } from 'lucide-react'
 import useProject from '~/hooks/use-project'
 import { useSession } from '~/lib/auth-client'
@@ -38,9 +38,6 @@ const DashboardPage = () => {
     { enabled: !!project?.id }
   )
 
-  // Fetch user credit balance
-  const { data: creditsData } = api.project.getMyCredits.useQuery()
-
   const handleCopyClone = () => {
     if (project?.repoUrl) {
       navigator.clipboard.writeText(`${project.repoUrl}.git`)
@@ -65,31 +62,25 @@ const DashboardPage = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-8">
-      {/* 1. Personalized Welcome Header Banner */}
-      <div className="rounded-xl border border-border/70 bg-card/70 p-6 sm:p-7 shadow-xs">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
-          <div className="space-y-2 max-w-2xl">
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
-              Welcome back, <span className="text-primary">{userName}</span>!
-            </h1>
-            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-              Connect your repositories, explore architecture, and get AI-powered answers about your code.
-            </p>
+      {/* 1. Aesthetic Welcome Header Banner */}
+      <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-br from-card/95 via-card/75 to-card/50 p-6 sm:p-8 shadow-xs">
+        {/* Soft Ambient Background Glows */}
+        <div className="absolute -right-8 -top-8 size-56 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+        <div className="absolute right-1/4 -bottom-10 size-48 rounded-full bg-blue-500/5 blur-2xl pointer-events-none" />
+
+        <div className="relative z-10 max-w-3xl space-y-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20 backdrop-blur-xs">
+            <Sparkles className="size-3.5" />
+            <span>Developer Workspace</span>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0 flex-wrap">
-            <Link href="/create">
-              <Button className="gap-2 shadow-xs font-medium h-9 px-4">
-                <Plus className="size-4" />
-                <span>Link Repository</span>
-              </Button>
-            </Link>
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
+            Welcome back, <span className="bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-400 bg-clip-text text-transparent capitalize">{userName}</span>!
+          </h1>
 
-            <div className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 border border-border/60 px-3 py-1.5 rounded-lg font-medium">
-              <Coins className="size-3.5 text-amber-500/80" />
-              <span>{creditsData?.credits ?? 500} credits available</span>
-            </div>
-          </div>
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+            Connect your repositories, explore architecture, and get AI-powered answers about your code.
+          </p>
         </div>
       </div>
 
@@ -164,9 +155,11 @@ const DashboardPage = () => {
             Repositories
           </h2>
           {hasProjects && (
-            <Link href="/create" className="text-xs text-primary hover:underline font-medium inline-flex items-center gap-1">
-              <Plus className="size-3" />
-              <span>Add repository</span>
+            <Link href="/create">
+              <Button variant="outline" size="sm" className="h-7 text-xs gap-1 border-border/70 hover:border-primary/50">
+                <Plus className="size-3 text-primary" />
+                <span>Add repository</span>
+              </Button>
             </Link>
           )}
         </div>
