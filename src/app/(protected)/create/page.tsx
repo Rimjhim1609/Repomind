@@ -43,15 +43,19 @@ const CreateForm = () => {
 
     if (checkCredits.data) {
       try {
-        await createProject.mutateAsync({
+        const newProject = await createProject.mutateAsync({
           name: projectName,
           repoUrl,
           gitHubToken,
         })
 
-        toast.success("Project created successfully")
+        if (newProject?.id && typeof window !== 'undefined') {
+          window.localStorage.setItem('repomind-project-id', JSON.stringify(newProject.id))
+        }
 
-        await new Promise((resolve) => setTimeout(resolve, 500))
+        toast.success("Repository linked! Code indexing in progress...")
+
+        await new Promise((resolve) => setTimeout(resolve, 300))
         await refetch()
         router.push('/dashboard')
       } catch (error: any) {

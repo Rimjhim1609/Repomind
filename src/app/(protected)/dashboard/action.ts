@@ -58,7 +58,7 @@ export async function askQuestion(question: string, projectId: string) {
         // Step 6: Generate streaming response
         ;(async () => {
             const { textStream } = await streamText({
-                model: google("gemini-2.0-flash"),
+                model: google("gemini-flash-latest"),
                 prompt: buildPrompt(question, context),
                 temperature: 0.3,
                 maxTokens: 2000,
