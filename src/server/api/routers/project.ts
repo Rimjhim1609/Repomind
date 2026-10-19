@@ -325,4 +325,19 @@ getQuestions: protectedProcedure.input(z.object({
         });
     }),
 
+    getProjectStats: protectedProcedure.input(z.object({
+        projectId: z.string(),
+    })).query(async ({ ctx, input }) => {
+        const [embeddingsCount, commitsCount, questionsCount] = await Promise.all([
+            ctx.db.sourceCodeEmbedding.count({ where: { projectId: input.projectId } }),
+            ctx.db.commit.count({ where: { projectId: input.projectId } }),
+            ctx.db.question.count({ where: { projectId: input.projectId } }),
+        ]);
+        return {
+            embeddingsCount,
+            commitsCount,
+            questionsCount,
+        };
+    }),
+
 });
