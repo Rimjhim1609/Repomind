@@ -31,8 +31,15 @@ if (!resolvedDatabaseUrl) {
 const createPrismaClient = () =>
   new PrismaClient({
     datasourceUrl: resolvedDatabaseUrl,
+    datasources: resolvedDatabaseUrl
+      ? {
+          db: {
+            url: resolvedDatabaseUrl,
+          },
+        }
+      : undefined,
     log:
-      process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
+      process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   });
 
 const globalForPrisma = globalThis as unknown as {
