@@ -8,7 +8,7 @@ import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { api } from '~/trpc/react'
 import useRefetch from '~/hooks/use-refetch'
-import { Info, Sparkles } from 'lucide-react'
+import { Info } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 type FormInput = {
@@ -90,15 +90,11 @@ const CreateForm = () => {
       />
       <div className='flex flex-col gap-4 max-w-md w-full'>
         <div>
-          <div className='inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium mb-2 border border-primary/20'>
-            <Sparkles className='size-3' />
-            <span>AST & pgvector Indexer</span>
-          </div>
           <h1 className='font-bold text-2xl tracking-tight'>
             Link your GitHub Repository
           </h1>
           <p className='text-sm text-muted-foreground mt-1'>
-            Enter repository details to initiate vector chunking and commit tracking.
+            Enter repository details to link your code and track commits.
           </p>
         </div>
 
