@@ -247,18 +247,15 @@ const AskQuestionCard = () => {
         </DialogContent>
       </Dialog>
 
-      <Card className="relative col-span-3 border border-border/80 shadow-sm bg-gradient-to-b from-card to-card/60 backdrop-blur-sm">
-        <CardHeader className="pb-3">
+      <Card className="relative col-span-3 border border-border/70 shadow-xs bg-card/70">
+        <CardHeader className="pb-2.5">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <div className="size-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shadow-xs">
-                <Sparkles className="size-4" />
+            <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+              <div className="size-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                <Sparkles className="size-3.5" />
               </div>
-              Ask Repository Intelligence
+              Ask your codebase
             </CardTitle>
-            <span className="text-[11px] font-medium text-muted-foreground/90 bg-muted/60 px-2 py-0.5 rounded-md border border-border/50">
-              pgvector 768 • Hybrid RAG
-            </span>
           </div>
         </CardHeader>
 
@@ -266,14 +263,14 @@ const AskQuestionCard = () => {
           <form onSubmit={onSubmit} className="space-y-3">
             <div className="relative">
               <Textarea
-                className="min-h-[110px] resize-none text-sm bg-background/50 focus:bg-background transition-colors placeholder:text-muted-foreground/70"
-                placeholder="Ask anything about architecture, workflows, API contracts, or dependencies..."
+                className="min-h-[105px] resize-none text-sm bg-background/50 focus:bg-background border-border/70 focus-visible:ring-1 focus-visible:ring-primary text-foreground placeholder:text-muted-foreground/60 transition-colors"
+                placeholder="How does authentication work in this project?"
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 onKeyDown={handleKeyDown}
                 disabled={loading}
               />
-              <div className="absolute bottom-2 right-2 flex items-center gap-1.5 pointer-events-none text-[10px] text-muted-foreground/70">
+              <div className="absolute bottom-2 right-2.5 flex items-center gap-1 pointer-events-none text-[10px] text-muted-foreground/60 font-mono">
                 <span>Ctrl</span>
                 <span>+</span>
                 <CornerDownLeft className="size-3" />
