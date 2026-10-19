@@ -7,6 +7,18 @@ export const auth = betterAuth({
     provider: "postgresql",
   }),
   baseURL: process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+  trustedOrigins: [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:3002",
+    "http://localhost:3003",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+    "http://127.0.0.1:3002",
+    "http://127.0.0.1:3003",
+    "http://localhost:*",
+    "http://127.0.0.1:*",
+  ],
   secret: process.env.BETTER_AUTH_SECRET || "repomind-secret-key-super-secure-32-chars-long-2026",
   emailAndPassword: {
     enabled: true,
