@@ -15,6 +15,7 @@ import {
   FolderGit2,
 } from 'lucide-react'
 import useProject from '~/hooks/use-project'
+import { useSession } from '~/lib/auth-client'
 import { api } from '~/trpc/react'
 import { toast } from 'sonner'
 import { Button } from '~/components/ui/button'
@@ -28,6 +29,7 @@ import RepoHealthCard from './repo-health-card'
 
 const DashboardPage = () => {
   const { project, projects, projectId, setProjectId, isLoading: isProjectsLoading } = useProject()
+  const { data: session } = useSession()
   const [copiedClone, setCopiedClone] = useState(false)
 
   // Fetch live stats for selected project
@@ -59,18 +61,19 @@ const DashboardPage = () => {
   }
 
   const hasProjects = projects && projects.length > 0
+  const userName = session?.user?.name || session?.user?.email?.split('@')[0] || 'Developer'
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-8">
-      {/* 1. Welcome Header Banner */}
-      <div className="rounded-xl border border-border/70 bg-card/70 p-6 shadow-xs">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1.5 max-w-2xl">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Your codebase, understood.
+      {/* 1. Personalized Welcome Header Banner */}
+      <div className="rounded-xl border border-border/70 bg-card/70 p-6 sm:p-7 shadow-xs">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+          <div className="space-y-2 max-w-2xl">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
+              Welcome back, <span className="text-primary">{userName}</span>!
             </h1>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Connect your repository, ask questions in natural language, and explore your code with AI-powered insights.
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+              Connect your repositories, explore architecture, and get AI-powered answers about your code.
             </p>
           </div>
 
@@ -286,6 +289,11 @@ const DashboardPage = () => {
           <CommitLog />
         </div>
       )}
+
+      {/* 6. Footer */}
+      <footer className="pt-8 pb-4 text-center text-xs text-muted-foreground border-t border-border/40">
+        @repomind 2026
+      </footer>
     </div>
   )
 }

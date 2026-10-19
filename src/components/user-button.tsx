@@ -2,7 +2,6 @@
 
 import React from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 import { authClient } from "~/lib/auth-client"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import {
@@ -13,12 +12,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
-import { LogOut, CreditCard, LayoutDashboard, User as UserIcon } from "lucide-react"
+import { LogOut } from "lucide-react"
 import { toast } from "sonner"
 
 export function UserButton() {
   const router = useRouter()
-  const { data: session, isPending } = authClient.useSession()
+  const { data: session } = authClient.useSession()
 
   const handleSignOut = async () => {
     try {
@@ -70,25 +69,12 @@ export function UserButton() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link href="/dashboard" className="cursor-pointer flex items-center gap-2">
-            <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
-            <span>Dashboard</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/billing" className="cursor-pointer flex items-center gap-2">
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-            <span>Billing & Credits</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={handleSignOut}
-          className="cursor-pointer text-destructive focus:text-destructive flex items-center gap-2"
+          className="cursor-pointer text-destructive focus:text-destructive flex items-center gap-2 font-medium"
         >
           <LogOut className="h-4 w-4" />
-          <span>Sign Out</span>
+          <span>Log Out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
