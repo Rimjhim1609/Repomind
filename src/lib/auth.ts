@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { db } from "~/server/db";
+import { sendPasswordResetEmail } from "~/lib/email";
 
 export const auth = betterAuth({
   database: prismaAdapter(db, {
@@ -23,6 +24,13 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     autoSignIn: true,
+    async sendResetPassword(data, request) {
+      console.log(`[RepoMind Auth] Reset password link for ${data.user.email}: ${data.url}`);
+      await sendPasswordResetEmail({
+        to: data.user.email,
+        resetUrl: data.url,
+      });
+    },
   },
   socialProviders: {
     github: {

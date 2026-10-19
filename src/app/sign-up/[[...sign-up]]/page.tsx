@@ -7,7 +7,7 @@ import { authClient } from '~/lib/auth-client'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/components/ui/card'
-import { ArrowRight, Sparkles, Lock, Mail, User, Loader2 } from 'lucide-react'
+import { Lock, Mail, User, Loader2, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function SignUpPage() {
@@ -15,6 +15,7 @@ export default function SignUpPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [githubLoading, setGithubLoading] = useState(false)
 
@@ -33,8 +34,8 @@ export default function SignUpPage() {
     setLoading(true)
     try {
       const res = await authClient.signUp.email({
-        name,
-        email,
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
         password,
         callbackURL: "/dashboard",
       })
@@ -47,7 +48,7 @@ export default function SignUpPage() {
       }
     } catch (err: any) {
       console.warn("Sign up notice:", err)
-      toast.info("Database not connected yet. Use Instant Demo Access below!")
+      toast.error("Unable to create account. Please check your details.")
     } finally {
       setLoading(false)
     }
@@ -66,12 +67,6 @@ export default function SignUpPage() {
     }
   }
 
-  const handleDemoAccess = () => {
-    document.cookie = "repomind_demo=true; path=/; max-age=86400"
-    toast.success("Welcome! Entered RepoMind Demo Mode.")
-    router.push('/dashboard')
-  }
-
   return (
     <div className="flex min-h-screen items-center justify-center p-4 bg-muted/20">
       <Card className="w-full max-w-md shadow-xl border-border">
@@ -81,7 +76,7 @@ export default function SignUpPage() {
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">Create your RepoMind account</CardTitle>
           <CardDescription>
-            Join with Better Auth and get 500 free indexing credits
+            Enter your details to create an account
           </CardDescription>
         </CardHeader>
 
@@ -104,10 +99,13 @@ export default function SignUpPage() {
             Sign up with GitHub
           </Button>
 
-          <div className="relative flex items-center justify-center text-xs uppercase text-muted-foreground">
-            <span className="w-full border-t border-border" />
-            <span className="bg-card px-2">Or with email</span>
-            <span className="w-full border-t border-border" />
+          {/* Clean Single-Line Divider */}
+          <div className="relative flex items-center my-4">
+            <div className="flex-grow border-t border-border" />
+            <span className="shrink-0 mx-3 text-xs uppercase text-muted-foreground whitespace-nowrap">
+              Or with email
+            </span>
+            <div className="flex-grow border-t border-border" />
           </div>
 
           <form onSubmit={handleEmailSignUp} className="space-y-3">
@@ -149,14 +147,23 @@ export default function SignUpPage() {
                 <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-9"
-                  placeholder="••••••••"
+                  className="pl-9 pr-10"
+                  placeholder="At least 8 characters"
                   minLength={8}
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground transition-colors"
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
 
@@ -164,20 +171,6 @@ export default function SignUpPage() {
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create Account"}
             </Button>
           </form>
-
-          {/* Instant Demo Access Button */}
-          <div className="pt-2">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handleDemoAccess}
-              className="w-full gap-2 text-xs font-medium bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-primary" />
-              Instant Demo Access (No Setup Required)
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Button>
-          </div>
         </CardContent>
 
         <CardFooter className="flex flex-col gap-2 pt-0">
@@ -185,6 +178,12 @@ export default function SignUpPage() {
             Already have an account?{' '}
             <Link href="/sign-in" className="text-primary hover:underline font-medium">
               Sign in
+            </Link>
+          </p>
+          <p className="text-xs text-center text-muted-foreground">
+            Trouble remembering your credentials?{' '}
+            <Link href="/forgot-password" className="text-primary hover:underline font-medium">
+              Forgot password?
             </Link>
           </p>
         </CardFooter>

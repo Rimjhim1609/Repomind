@@ -7,13 +7,14 @@ import { authClient } from '~/lib/auth-client'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '~/components/ui/card'
-import { ArrowRight, Sparkles, Lock, Mail, Loader2 } from 'lucide-react'
+import { Lock, Mail, Loader2, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function SignInPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [githubLoading, setGithubLoading] = useState(false)
 
@@ -27,7 +28,7 @@ export default function SignInPage() {
     setLoading(true)
     try {
       const res = await authClient.signIn.email({
-        email,
+        email: email.trim().toLowerCase(),
         password,
         callbackURL: "/dashboard",
       })
@@ -39,9 +40,8 @@ export default function SignInPage() {
         router.push('/dashboard')
       }
     } catch (err: any) {
-      // Graceful fallback if database is not connected
       console.warn("Sign in notice:", err)
-      toast.info("Database not connected yet. Use Instant Demo Access below!")
+      toast.error("Unable to sign in. Please verify your credentials.")
     } finally {
       setLoading(false)
     }
@@ -60,13 +60,6 @@ export default function SignInPage() {
     }
   }
 
-  const handleDemoAccess = () => {
-    // Set a demo cookie so middleware lets them explore without database
-    document.cookie = "repomind_demo=true; path=/; max-age=86400"
-    toast.success("Welcome! Entered RepoMind Demo Mode.")
-    router.push('/dashboard')
-  }
-
   return (
     <div className="flex min-h-screen items-center justify-center p-4 bg-muted/20">
       <Card className="w-full max-w-md shadow-xl border-border">
@@ -76,7 +69,7 @@ export default function SignInPage() {
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">Sign in to RepoMind</CardTitle>
           <CardDescription>
-            Authenticate with Better Auth or explore in Demo Mode
+            Enter your credentials to access your account
           </CardDescription>
         </CardHeader>
 
@@ -99,10 +92,13 @@ export default function SignInPage() {
             Continue with GitHub
           </Button>
 
-          <div className="relative flex items-center justify-center text-xs uppercase text-muted-foreground">
-            <span className="w-full border-t border-border" />
-            <span className="bg-card px-2">Or with email</span>
-            <span className="w-full border-t border-border" />
+          {/* Clean Single-Line Divider */}
+          <div className="relative flex items-center my-4">
+            <div className="flex-grow border-t border-border" />
+            <span className="shrink-0 mx-3 text-xs uppercase text-muted-foreground whitespace-nowrap">
+              Or with email
+            </span>
+            <div className="flex-grow border-t border-border" />
           </div>
 
           <form onSubmit={handleEmailSignIn} className="space-y-3">
@@ -123,18 +119,35 @@ export default function SignInPage() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground" htmlFor="password">Password</label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-muted-foreground" htmlFor="password">Password</label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-primary hover:underline font-medium transition-colors"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-9"
-                  placeholder="••••••••"
+                  className="pl-9 pr-10"
+                  placeholder="Enter your password"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground transition-colors"
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
 
@@ -142,20 +155,6 @@ export default function SignInPage() {
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign In"}
             </Button>
           </form>
-
-          {/* Instant Demo Access Button */}
-          <div className="pt-2">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handleDemoAccess}
-              className="w-full gap-2 text-xs font-medium bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-primary" />
-              Instant Demo Access (No Setup Required)
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Button>
-          </div>
         </CardContent>
 
         <CardFooter className="flex flex-col gap-2 pt-0">
