@@ -1,3 +1,4 @@
+import ignore from "ignore";
 import { GithubRepoLoader } from "@langchain/community/document_loaders/web/github";
 import { Document } from "@langchain/core/documents";
 import { generateEmbedding, summariseCode } from "./gemini";
@@ -51,31 +52,83 @@ export async function getDefaultBranch(repoUrl: string, token?: string): Promise
   return "main";
 }
 
-export const loadGithubRepo = async (repoUrl: string, githubToken?: string) => {
+const MAX_FILE_CHARS = 200_000; // skip generated or data files larger than this
+
+/**
+ * Files that are not useful to store: dependencies, build output, lock files,
+ * env files, project boilerplate docs, and binary or media files.
+ * Written in .gitignore syntax.
+ */
+const IGNORED_PATTERNS = [
+  // dependencies and build output
+  "node_modules/", "dist/", "build/", "out/", ".next/", "coverage/",
+  "vendor/", "target/", "__pycache__/", ".venv/", "venv/", ".git/",
+
+  // env files
+  ".env", ".env.*", "*.env",
+
+  // lock files
+  "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "bun.lockb", "*.lock",
+
+  // boilerplate docs
+  "README*", "LICENSE*", "CHANGELOG*", "CONTRIBUTING*", "CODE_OF_CONDUCT*",
+
+  // misc generated or editor files
+  ".gitignore", ".gitattributes", ".DS_Store", "*.log", "*.map",
+  "*.min.js", "*.min.css", "*.tsbuildinfo",
+
+  // images, fonts, archives, binaries
+  "*.png", "*.jpg", "*.jpeg", "*.gif", "*.ico", "*.svg", "*.webp",
+  "*.woff", "*.woff2", "*.ttf", "*.eot",
+  "*.pdf", "*.zip", "*.tar", "*.gz", "*.mp3", "*.mp4",
+  "*.exe", "*.dll", "*.class", "*.jar", "*.pyc",
+];
+
+const ignoreMatcher = ignore().add(IGNORED_PATTERNS);
+
+function normalizeRepoUrl(repoUrl: string): string {
+  return repoUrl.trim().replace(/\.git$/, "").replace(/\/+$/, "");
+}
+
+/**
+ * Final safety filter. Applies the same rules after download, in case the loader missed any.
+ */
+function filterStorableFiles(docs: Document[]): Document[] {
+  const kept = docs.filter((doc) => {
+    const filePath = String(doc.metadata.source).replace(/^\.?\/+/, "");
+    return !ignoreMatcher.ignores(filePath) && doc.pageContent.length <= MAX_FILE_CHARS;
+  });
+  console.log(`Kept ${kept.length} of ${docs.length} files after filtering`);
+  return kept;
+}
+
+export const loadGithubRepo = async (rawRepoUrl: string, githubToken?: string) => {
+  const repoUrl = normalizeRepoUrl(rawRepoUrl);
   const validToken = sanitizeGithubToken(githubToken);
   const detectedBranch = await getDefaultBranch(repoUrl, validToken);
 
   const baseConfig = {
     accessToken: validToken,
     branch: detectedBranch,
-    ignoreFiles: [
-      "package-lock.json",
-      "yarn.lock",
-      "pnpm-lock.yaml",
-      "bun.lockb",
-      ".gitignore",
-      ".env",
-      ".env.example",
-      ".env.local",
-      "*.svg",
-      "*.png",
-      "*.jpg",
-      "*.jpeg",
-      "*.gif",
-      "*.ico",
-      "*.pdf",
-      "*.zip",
-    ],
+        ignorePaths: IGNORED_PATTERNS,
+    // ignoreFiles: [
+    //   "package-lock.json",
+    //   "yarn.lock",
+    //   "pnpm-lock.yaml",
+    //   "bun.lockb",
+    //   ".gitignore",
+    //   ".env",
+    //   ".env.example",
+    //   ".env.local",
+    //   "*.svg",
+    //   "*.png",
+    //   "*.jpg",
+    //   "*.jpeg",
+    //   "*.gif",
+    //   "*.ico",
+    //   "*.pdf",
+    //   "*.zip",
+    // ],
     recursive: true,
     unknown: "warn" as const,
     maxConcurrency: 3,
@@ -83,7 +136,8 @@ export const loadGithubRepo = async (repoUrl: string, githubToken?: string) => {
 
   try {
     const loader = new GithubRepoLoader(repoUrl, baseConfig);
-    return await loader.load();
+        return filterStorableFiles(await loader.load());
+    //return await loader.load();
   } catch (err: any) {
     // If detected branch failed (e.g. was main but actual is master or vice versa), try alternate branch
     const alternateBranch = detectedBranch === "main" ? "master" : "main";
@@ -94,12 +148,51 @@ export const loadGithubRepo = async (repoUrl: string, githubToken?: string) => {
         ...baseConfig,
         branch: alternateBranch,
       });
-      return await fallbackLoader.load();
+            return filterStorableFiles(await fallbackLoader.load());
+      //return await fallbackLoader.load();
     } catch (fallbackErr) {
       console.error(`Repository loading failed on both branches:`, err);
       throw err;
     }
   }
+};
+
+/**
+ * Stores every downloaded file whole, exactly as it is in the repo.
+ * Clears the project's previous files first, so re-running never creates duplicates.
+ */
+async function saveProjectFiles(projectId: string, docs: Document[]) {
+  await db.projectFile.deleteMany({ where: { projectId } });
+
+  await db.projectFile.createMany({
+    data: docs.map((doc) => ({
+      projectId,
+      path: String(doc.metadata.source),
+      content: doc.pageContent.replace(/\u0000/g, ""), // Postgres text cannot hold null bytes
+    })),
+    skipDuplicates: true,
+  });
+}
+
+/**
+ * Downloads a GitHub repo and stores every file whole in the database.
+ */
+export const storeGithubRepoFiles = async (
+  projectId: string,
+  repoUrl: string,
+  githubToken?: string,
+) => {
+  const docs = await loadGithubRepo(repoUrl, githubToken);
+
+  if (docs.length === 0) {
+    console.warn("No files found in repository.");
+    return { fileCount: 0 };
+  }
+
+  await saveProjectFiles(projectId, docs);
+  console.log(`Stored ${docs.length} complete files`);
+
+  return { fileCount: docs.length };
 };
 
 /**
@@ -201,6 +294,10 @@ function extractSemanticChunks(lines: string[], maxSize: number): CodeChunk[] {
 /**
  * Enhanced embedding generation with metadata and progress reporting
  */
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+
+
 export const generateEmbeddings = async (docs: Document[]) => {
   console.log(`Generating embeddings for ${docs.length} documents...`);
 
@@ -229,6 +326,8 @@ export const generateEmbeddings = async (docs: Document[]) => {
         chunkType: doc.metadata.chunkType || 'full',
       });
 
+      await sleep(4000);
+
       if ((i + 1) % 5 === 0 || i === allChunks.length - 1) {
         console.log(`Embedded ${i + 1}/${allChunks.length} chunks`);
       }
@@ -236,6 +335,10 @@ export const generateEmbeddings = async (docs: Document[]) => {
       console.error(`Error embedding chunk ${i} (${doc.metadata.source}):`, error);
     }
   }
+
+  if (results.length === 0) {
+  throw new Error("No embeddings were generated. Check GEMINI_API_KEY and Gemini rate limits.");
+}
 
   return results;
 };
